@@ -98,8 +98,9 @@ canvas{width:100%;height:260px;display:block}
 .list{display:grid;gap:8px;max-height:200px;overflow:auto}
 .item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border-radius:10px;padding:8px 12px;font-size:14px}
 .item small{color:var(--muted)}
-.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.chips button{background:var(--soft);color:var(--ink);font-weight:500;font-size:13px;padding:8px 4px}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.chips button{background:var(--soft);color:var(--ink);font-weight:500;font-size:12.5px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15;min-height:62px;justify-content:center}
+.chips button .ic{font-size:22px;line-height:1}
 .chips button.on{background:var(--accent);color:var(--on-accent)}
 .act-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 10px}
 .act-sum div{background:var(--soft);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted)}
@@ -120,7 +121,7 @@ canvas{width:100%;height:260px;display:block}
 .toast.show{opacity:1}
 .banner{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:12px;font-size:14px}
 .banner.err{border-color:var(--danger);color:var(--danger)}
-@media (max-width:760px){main{grid-template-columns:1fr}.chips{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){main{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 .sync{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--soft);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px}
 .sync .st{min-width:0}
@@ -321,13 +322,17 @@ const DAY = 864e5;
 const MOODS = ['😞','😕','😐','🙂','😄'];
 const TAGS = ['Nausée','Fatigue','Peu de faim',"Brûlures d'estomac",'Constipation','Mal de tête',"Pleine d'énergie",'Fringales'];
 const ACTS = [
-  {name:'Tapis roulant',icon:'🏃‍♀️',extra:'Distance (km)',unit:'km'},
+  {name:'Marche',icon:'🚶‍♀️',extra:'Distance (km)',unit:'km'},
+  {name:'Marche rapide',icon:'👟',extra:'Distance (km)',unit:'km'},
+  {name:'Course',icon:'🏃‍♀️',extra:'Distance (km)',unit:'km'},
+  {name:'Vélo',icon:'🚴‍♀️',extra:'Distance (km)',unit:'km'},
+  {name:'Nage',icon:'🏊‍♀️',extra:'Longueurs',unit:'longueurs'},
   {name:'Rameur',icon:'🚣‍♀️',extra:'Distance (m)',unit:'m'},
-  {name:'Redressements assis',icon:'💪',extra:'Répétitions',unit:'rép.'},
-  {name:'TRX',icon:'🤸‍♀️',extra:'Séries',unit:'séries'},
-  {name:'Piscine',icon:'🏊‍♀️',extra:'Longueurs',unit:'longueurs'},
-  {name:'Marche',icon:'🚶‍♀️',extra:'Distance (km)',unit:'km'}
+  {name:'Muscu',icon:'🏋️‍♀️',extra:'Séries',unit:'séries'},
+  {name:'Autre',icon:'✨',extra:null,unit:''}
 ];
+// Activités des anciennes versions, pour bien les afficher dans l'historique
+const OLD_ACTS={'Tapis roulant':{icon:'🏃‍♀️',unit:'km'},'Redressements assis':{icon:'💪',unit:'rép.'},'TRX':{icon:'🤸‍♀️',unit:'séries'},'Piscine':{icon:'🏊‍♀️',unit:'longueurs'}};
 // Lit un nombre tapé avec une virgule ou un point (« 181,5 » ou « 181.5 »)
 const num = v => { const x=parseFloat(String(v??'').trim().replace(/\s/g,'').replace(',','.')); return isNaN(x)?NaN:x; };
 const pad2 = n => String(n).padStart(2,'0');
@@ -529,7 +534,7 @@ function renderActivities(){
   $('#a-streak').textContent=`${new Set(week.map(a=>a.date)).size}/7`;
   if(!state.activities.length){ box.innerHTML='<p class="hint">Aucune activité pour l\'instant. Choisis une activité, entre la durée et ajoute-la.</p>'; return; }
   [...state.activities].reverse().forEach(a=>{
-    const def=ACTS.find(x=>x.name===a.type)||{icon:'⭐',unit:''};
+    const def=ACTS.find(x=>x.name===a.type)||OLD_ACTS[a.type]||{icon:'⭐',unit:''};
     const row=document.createElement('div'); row.className='item';
     const txt=document.createElement('span');
     const bits=[]; if(a.minutes) bits.push(`${a.minutes} min`); if(a.extra!=null) bits.push(`${fmtNum(a.extra,2)} ${def.unit}`); if(a.intensity) bits.push(a.intensity);
@@ -588,7 +593,7 @@ let mood=null, tags=new Set(), pendingPhoto=null, actType='Marche';
 function buildPickers(){
   MOODS.forEach((m,i)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=m; b.setAttribute('aria-label','Humeur '+(i+1)+' sur 5'); b.onclick=()=>{ mood=mood===i?null:i; paintPickers(); }; $('#moods').append(b); });
   TAGS.forEach(t=>{ const b=document.createElement('button'); b.type='button'; b.textContent=t; b.onclick=()=>{ tags.has(t)?tags.delete(t):tags.add(t); paintPickers(); }; $('#tags').append(b); });
-  ACTS.forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.textContent=`${a.icon} ${a.name}`; b.dataset.name=a.name; b.onclick=()=>{ actType=a.name; paintActTypes(); }; $('#act-types').append(b); });
+  ACTS.forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.innerHTML=`<span class="ic" aria-hidden="true">${a.icon}</span><span>${a.name}</span>`; b.setAttribute('aria-label',a.name); b.dataset.name=a.name; b.onclick=()=>{ actType=a.name; paintActTypes(); }; $('#act-types').append(b); });
 }
 function paintPickers(){
   [...$('#moods').children].forEach((b,i)=>b.classList.toggle('on',i===mood));
@@ -596,7 +601,10 @@ function paintPickers(){
 }
 function paintActTypes(){
   [...$('#act-types').children].forEach(b=>b.classList.toggle('on',b.dataset.name===actType));
-  $('#a-extra-lbl').textContent=ACTS.find(a=>a.name===actType).extra;
+  const def=ACTS.find(a=>a.name===actType);
+  $('#a-extra-lbl').textContent=def.extra||'';
+  $('#a-extra').closest('div').style.visibility=def.extra?'visible':'hidden';
+  if(!def.extra) $('#a-extra').value='';
 }
 async function fillEntryForm(){
   const e=state.entries.find(x=>x.id===$('#e-date').value);
