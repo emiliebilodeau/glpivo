@@ -1,5 +1,5 @@
 // Garde l'app disponible hors ligne. Les données restent dans l'app (IndexedDB), jamais dans ce cache.
-const CACHE = 'glpivo-v1';
+const CACHE = 'glpivo-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
