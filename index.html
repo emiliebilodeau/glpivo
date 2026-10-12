@@ -36,6 +36,11 @@ h2{margin:0 0 12px;font-size:17px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
 textarea{min-height:64px;resize:vertical}
+input,select{height:46px;min-width:0;display:block}
+input[type=date]{-webkit-appearance:none;appearance:none;text-align:left;line-height:24px}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
+select{-webkit-appearance:none;appearance:none;padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 button{font:inherit;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;background:var(--accent);color:var(--on-accent);font-weight:600}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button:disabled{opacity:.6;cursor:default}
@@ -210,12 +215,12 @@ canvas{width:100%;height:260px;display:block}
       <h2>💉 Mes injections</h2>
       <form id="f-dose" novalidate>
         <div class="row">
-          <div><label for="d-time">Date et heure</label><input type="datetime-local" id="d-time" required></div>
+          <div><label for="d-time">Date</label><input type="date" id="d-time"></div>
           <div><label for="d-mg">Dose (mg)</label><input type="text" autocomplete="off" id="d-mg" list="mgs" inputmode="decimal" required>
             <datalist id="mgs"><option value="0.25"><option value="0.5"><option value="1"><option value="1.7"><option value="2"></datalist></div>
         </div>
         <p></p>
-        <button type="submit">Ajouter la dose</button>
+        <button type="submit">Ajouter l'injection</button>
       </form>
       <p></p>
       <div class="list" id="dose-list"></div>
@@ -511,7 +516,7 @@ function renderDoses(){
   [...state.doses].reverse().forEach(d=>{
     const row=document.createElement('div'); row.className='item';
     const txt=document.createElement('span');
-    txt.textContent=`${new Date(d.time).toLocaleString('fr-CA',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${fmtNum(d.mg,2)} mg`;
+    txt.textContent=`${new Date(d.time).toLocaleDateString('fr-CA',{weekday:'short',day:'numeric',month:'short',year:'numeric'})} · ${fmtNum(d.mg,2)} mg`;
     row.append(txt,delButton(async()=>{ await removeRec('doses',d.id); await changed(); })); box.append(row);
   });
 }
@@ -636,11 +641,11 @@ $('#f-entry').addEventListener('submit',async ev=>{
 
 $('#f-dose').addEventListener('submit',async ev=>{
   ev.preventDefault();
-  const time=new Date($('#d-time').value).getTime(), mg=num($('#d-mg').value);
-  if(isNaN(time)){ toast('Choisis la date et l\'heure.'); return; }
+  const time=$('#d-time').value?dateToTime($('#d-time').value):NaN, mg=num($('#d-mg').value);
+  if(isNaN(time)){ toast('Choisis la date de l\'injection.'); return; }
   if(isNaN(mg)||mg<=0){ toast('Entre la dose en mg.'); return; }
   await saveRec('doses',{id:'d-'+rid(),time,mg});
-  $('#d-time').value=nowLocal(); toast('Dose ajoutée ✓'); await changed();
+  $('#d-time').value=todayStr(); toast('Injection ajoutée ✓'); await changed();
 });
 
 $('#f-act').addEventListener('submit',async ev=>{
@@ -823,7 +828,7 @@ window.addEventListener('focus',()=>{ if(getToken() && Date.now()-lastFocusSync>
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && getToken()) scheduleSync(); });
 (async()=>{
   buildPickers(); paintActTypes(); paintPickers();
-  $('#e-date').value=todayStr(); $('#a-date').value=todayStr(); $('#d-time').value=nowLocal();
+  $('#e-date').value=todayStr(); $('#a-date').value=todayStr(); $('#d-time').value=todayStr();
   $('#redirect-uri').textContent=REDIRECT_URI; $('#g-client').value=clientId();
   try{ idb=await openDB(); }catch{ banner('Ce navigateur bloque l\'enregistrement des données (navigation privée?). Ouvre l\'app normalement.',true); return; }
   try{ navigator.storage?.persist?.(); }catch{}
