@@ -554,8 +554,10 @@ function renderJournal(){
   });
 }
 let settingsDirty=false;
+const typingInSettings=()=>!!document.activeElement?.closest?.('#f-settings');
 function renderSettings(){
-  if(settingsDirty) return;
+  if(settingsDirty && typingInSettings()) return;
+  settingsDirty=false;
   const s=state.settings;
   $('#g-start').value=s.startWeight??''; $('#g-goal').value=s.goalWeight??''; $('#g-unit').value=s.unit; $('#g-int').value=s.interval;
   if(s.heightCm){ const tin=s.heightCm/2.54; let ft=Math.floor(tin/12), inch=Math.round((tin-ft*12)*2)/2; if(inch>=12){ ft++; inch=0; } $('#g-ft').value=ft; $('#g-in').value=inch; $('#g-cm').value=Math.round(s.heightCm*2)/2; }
@@ -714,7 +716,7 @@ function readRedirect(){
 }
 async function gfetch(url,opt={}){
   const tok=getToken(); if(!tok) throw {code:'auth'};
-  const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+tok}});
+  const r=await fetch(url,{cache:'no-store',...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+tok}});
   if(r.status===401){ ls.set('glp.token',null); throw {code:'auth'}; }
   if(!r.ok) throw {code:'http',status:r.status,text:await r.text().catch(()=>'')};
   return r;
@@ -749,9 +751,12 @@ async function sync(manual){
   try{
     await load();
     const files=await listDrive();
-    const dataFile=files.find(f=>f.name===DATA_NAME);
+    const dataFiles=files.filter(f=>f.name===DATA_NAME), dataFile=dataFiles[0];
     let remote={entries:[],doses:[],activities:[],settings:null};
-    if(dataFile){ remote=await (await gfetch(`https://www.googleapis.com/drive/v3/files/${dataFile.id}?alt=media`)).json(); }
+    for(const f of dataFiles){
+      const j=await (await gfetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&t=${Date.now()}`)).json();
+      remote={entries:mergeLists(remote.entries,j.entries),doses:mergeLists(remote.doses,j.doses),activities:mergeLists(remote.activities,j.activities),settings:newer(remote.settings,j.settings)};
+    }
     const merged={
       entries:mergeLists(raw.entries,remote.entries),
       doses:mergeLists(raw.doses,remote.doses),
@@ -777,6 +782,7 @@ async function sync(manual){
     await new Promise((res,rej)=>{ tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
     const body=new Blob([JSON.stringify({app:'glpivo',version:1,savedAt:Date.now(),...merged})],{type:'application/json'});
     if(dataFile) await uploadReplace(dataFile.id,body); else await uploadNew(DATA_NAME,body);
+    for(const f of dataFiles.slice(1)) await gfetch(`https://www.googleapis.com/drive/v3/files/${f.id}`,{method:'DELETE'}).catch(()=>{});
     ls.set('glp.lastSync',String(Date.now()));
     await refresh();
     if(manual) toast('Synchronisé avec Google Drive ✓');
@@ -810,7 +816,9 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#lightbox').hid
 
 // ---------- Démarrage ----------
 let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ renderWeightChart(); },150); });
-setInterval(()=>{ if(document.visibilityState==='visible' && getToken() && !syncing) sync(); },120000);
+setInterval(()=>{ if(document.visibilityState==='visible' && getToken() && !syncing) sync(); },60000);
+let lastFocusSync=0;
+window.addEventListener('focus',()=>{ if(getToken() && Date.now()-lastFocusSync>5000){ lastFocusSync=Date.now(); scheduleSync(); } });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && getToken()) scheduleSync(); });
 (async()=>{
   buildPickers(); paintActTypes(); paintPickers();
