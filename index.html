@@ -478,7 +478,8 @@ function renderProgress(start,cur,goal,u){
   $('#p-lost').textContent=lost>=0?`${fmtNum(lost)} ${u} perdues`:`${fmtNum(-lost)} ${u} de plus qu'au départ`;
   $('#p-sub').textContent=pct>=100?`Objectif de ${fmtNum(goal)} ${u} atteint 🎉`:`Sur ${fmtNum(start-goal)} ${u} visées · de ${fmtNum(start)} à ${fmtNum(goal)} ${u}`;
 }
-const BMI_CATS=[[18.5,'Poids insuffisant','--b1'],[25,'Poids normal','--b2'],[30,'Embonpoint','--b3'],[35,'Obésité classe I','--b4'],[40,'Obésité classe II','--b5'],[Infinity,'Obésité classe III','--b6']];
+// Classification officielle de Santé Canada (Lignes directrices canadiennes pour la classification du poids chez les adultes)
+const BMI_CATS=[[18.5,'Poids insuffisant','--b1'],[25,'Poids normal','--b2'],[30,'Excès de poids','--b3'],[35,'Obésité classe I','--b4'],[40,'Obésité classe II','--b5'],[Infinity,'Obésité classe III','--b6']];
 const toKg=(w,u)=>u==='lb'?w*0.45359237:w;
 const bmiPos=v=>Math.max(0,Math.min(100,(v-15)/30*100));
 function renderBmi(cur,goal,u){
@@ -488,7 +489,7 @@ function renderBmi(cur,goal,u){
   const m=h/100, bmi=toKg(cur,u)/(m*m), cat=BMI_CATS.find(c=>bmi<c[0]);
   $('#b-val').textContent=fmtNum(bmi,1); $('#b-cat').textContent=cat[1]; $('#b-cat').style.color='';
   mark.hidden=false; mark.style.left=bmiPos(bmi)+'%';
-  let note='Indicateur général pour adultes : il ne tient pas compte de la masse musculaire, de l\'âge ni de la morphologie.';
+  let note='Classification de Santé Canada pour les adultes. Indicateur général : il ne tient pas compte de la masse musculaire, de l\'âge ni de la morphologie.';
   if(goal!=null){ const gb=toKg(goal,u)/(m*m); gm.hidden=false; gm.style.left=bmiPos(gb)+'%'; note=`À ton poids visé : IMC ${fmtNum(gb,1)} (rond vert). `+note; } else gm.hidden=true;
   $('#b-note').textContent=note;
 }
