@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GLPivo</title>
+<meta name="theme-color" content="#6d4cf0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GLPivo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* Layout: one column on the phone, two columns on a wide screen; summary first, then the daily inputs, then the curves and the photo journal. */
+:root{
+  --bg:#f6f4fb;--card:#ffffff;--ink:#1d1b26;--muted:#6b6780;--accent:#6d4cf0;--accent2:#d6458f;
+  --line:#e6e2f0;--soft:#efeafe;--ok:#1b8f62;--danger:#c8323b;--on-accent:#ffffff;--b1:#9db8e8;--b2:#7fcca5;--b3:#f1c96b;--b4:#eea36a;--b5:#e57b6e;--b6:#c95b7c;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121019;--card:#1c1926;--ink:#eeeaf8;--muted:#a19cb5;--accent:#8f74ff;--accent2:#ec6aa9;--line:#2e2a3c;--soft:#2a2340;--ok:#3cc38d;--danger:#f0656d;--b1:#5f7fb8;--b2:#3f9f73;--b3:#c9a043;--b4:#c97b45;--b5:#c35a4f;--b6:#a8456a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121019;--card:#1c1926;--ink:#eeeaf8;--muted:#a19cb5;--accent:#8f74ff;--accent2:#ec6aa9;--line:#2e2a3c;--soft:#2a2340;--ok:#3cc38d;--danger:#f0656d;--b1:#5f7fb8;--b2:#3f9f73;--b3:#c9a043;--b4:#c97b45;--b5:#c35a4f;--b6:#a8456a;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--font)}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(60px + env(safe-area-inset-bottom,0px))}
+header h1{margin:0;font-size:26px;text-wrap:balance}
+header p{margin:2px 0 0;color:var(--muted)}
+main{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-top:14px}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.full{grid-column:1/-1}
+h2{margin:0 0 12px;font-size:17px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+textarea{min-height:64px;resize:vertical}
+button{font:inherit;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;background:var(--accent);color:var(--on-accent);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.6;cursor:default}
+button.ghost{background:var(--soft);color:var(--ink);font-weight:500}
+button.del{background:transparent;color:var(--muted);padding:4px 8px;font-weight:500;font-size:13px;white-space:nowrap}
+button.del.armed{color:var(--danger);font-weight:700}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--soft);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:14px}
+.prog{display:flex;align-items:center;gap:16px;min-width:0}
+.ring{position:relative;width:132px;height:132px;flex:none}
+.ring svg{width:100%;height:100%;display:block}
+#ring-arc{transition:stroke-dasharray .6s ease}
+.ring-num{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring-num b{font-size:34px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ring-num span{font-size:11.5px;color:var(--muted);margin-top:4px}
+.prog-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.prog-txt b{font-size:18px}
+.prog-txt span{font-size:13.5px;color:var(--muted)}
+.bmi{background:var(--soft);border-radius:14px;padding:12px 14px;min-width:0}
+.bmi-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.bmi-top span{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.bmi-top b{font-size:28px;font-variant-numeric:tabular-nums;line-height:1.1}
+.bmi-top em{font-style:normal;font-size:13.5px;font-weight:600}
+.bmi-scale{position:relative;display:flex;height:10px;border-radius:6px;overflow:visible;margin-top:10px;gap:2px}
+.bmi-scale i{display:block;height:100%}
+.bmi-scale i:nth-child(1){background:var(--b1);border-radius:6px 0 0 6px}
+.bmi-scale i:nth-child(2){background:var(--b2)}
+.bmi-scale i:nth-child(3){background:var(--b3)}
+.bmi-scale i:nth-child(4){background:var(--b4)}
+.bmi-scale i:nth-child(5){background:var(--b5)}
+.bmi-scale i:nth-child(6){background:var(--b6);border-radius:0 6px 6px 0}
+.bmi-mark{position:absolute;top:-5px;width:4px;height:20px;border-radius:2px;background:var(--ink);transform:translateX(-50%);box-shadow:0 0 0 2px var(--soft)}
+.bmi-goal{position:absolute;top:-4px;width:12px;height:12px;border-radius:50%;border:2px solid var(--ok);background:var(--soft);transform:translate(-50%,3px)}
+.bmi-ticks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+.moods{display:flex;gap:6px}
+.moods button{flex:1;font-size:24px;background:var(--soft);padding:6px 0}
+.moods button.on{outline:2px solid var(--accent);background:var(--card)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags button{background:var(--soft);color:var(--ink);font-weight:500;font-size:13px;padding:7px 11px;border-radius:20px}
+.tags button.on{background:var(--accent);color:var(--on-accent)}
+.photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.photo-btns label{margin:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:10px;background:var(--soft);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;text-align:center}
+.photo-btns label:focus-within{outline:2px solid var(--accent)}
+.photo-btns input{position:absolute;width:1px;height:1px;opacity:0}
+.drop-note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.drop-over{outline:2px dashed var(--accent);outline-offset:4px}
+.preview{max-width:140px;border-radius:10px;margin-top:8px;display:block}
+canvas{width:100%;height:260px;display:block}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.list{display:grid;gap:8px;max-height:200px;overflow:auto}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border-radius:10px;padding:8px 12px;font-size:14px}
+.item small{color:var(--muted)}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.chips button{background:var(--soft);color:var(--ink);font-weight:500;font-size:13px;padding:8px 4px}
+.chips button.on{background:var(--accent);color:var(--on-accent)}
+.act-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 10px}
+.act-sum div{background:var(--soft);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.act-sum b{display:block;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.journal{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.entry{background:var(--soft);border-radius:12px;overflow:hidden}
+.entry img{width:100%;max-width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:zoom-in;background:var(--line)}
+.entry .noimg{aspect-ratio:3/4;display:grid;place-items:center;color:var(--muted);font-size:13px}
+.entry .meta{padding:8px 10px;font-size:13.5px}
+.entry .top{display:flex;justify-content:space-between;align-items:center;gap:4px}
+.entry .tg{color:var(--muted);font-size:12px}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--muted);margin-bottom:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:grid;place-items:center;z-index:9;cursor:zoom-out;padding:16px}
+.lightbox img{max-width:100%;max-height:90vh;border-radius:10px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.banner{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:12px;font-size:14px}
+.banner.err{border-color:var(--danger);color:var(--danger)}
+@media (max-width:760px){main{grid-template-columns:1fr}.chips{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.sync{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--soft);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px}
+.sync .st{min-width:0}
+.sync .st b{display:block;font-size:14px}
+.sync .st span{color:var(--muted)}
+.sync button.ghost{background:var(--card);border:1px solid var(--line)}
+.notice{background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:14px}
+.notice p{margin:4px 0 10px;color:var(--ink)}
+.disclaimer{margin-top:20px;padding:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:75ch}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:middle}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>⚡ GLPivo</h1>
+  <p>Suivi des injections, du poids, des symptômes et de la progression</p>
+  <div class="notice" id="notice" hidden>
+    <b>Avant de commencer</b>
+    <p>GLPivo sert à noter et à visualiser ton suivi personnel. C'est un outil d'information et de suivi général seulement. Il ne pose aucun diagnostic, ne recommande aucune dose et ne remplace pas l'avis de ton médecin, de ton infirmière ou de ton pharmacien. Ne modifie jamais ton traitement sans leur en parler. En cas d'effet secondaire inquiétant, contacte un professionnel de la santé; en cas d'urgence, compose le 911.</p>
+    <button type="button" id="b-notice">J'ai compris</button>
+  </div>
+  <div class="banner" id="banner" hidden></div>
+  <div class="sync" id="sync-bar">
+    <div class="st"><b><i class="dot" id="sync-dot"></i><span id="sync-title">Google Drive non connecté</span></b><span id="sync-sub">Tes données sont sur cet appareil. Connecte ton Drive pour en garder une copie.</span></div>
+    <button type="button" class="ghost" id="b-sync">Connecter Google Drive</button>
+  </div>
+</header>
+
+<main>
+  <section class="card full">
+    <div class="hero">
+      <div class="prog">
+        <div class="ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="12"/>
+            <circle id="ring-arc" cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 327" transform="rotate(-90 60 60)"/>
+          </svg>
+          <div class="ring-num"><b id="p-pct">—</b><span>de l'objectif</span></div>
+        </div>
+        <div class="prog-txt">
+          <b id="p-lost">Ta progression</b>
+          <span id="p-sub">Entre ton poids de départ et ton poids visé dans « Objectifs » pour voir ton pourcentage.</span>
+        </div>
+      </div>
+      <div class="bmi">
+        <div class="bmi-top"><span>IMC</span><b id="b-val">—</b><em id="b-cat"></em></div>
+        <div class="bmi-scale" aria-hidden="true">
+          <i style="flex:3.5"></i><i style="flex:6.5"></i><i style="flex:5"></i><i style="flex:5"></i><i style="flex:5"></i><i style="flex:5"></i>
+          <span class="bmi-mark" id="b-mark" hidden></span><span class="bmi-goal" id="b-goalmark" hidden></span>
+        </div>
+        <div class="bmi-ticks" aria-hidden="true"><span>15</span><span>18,5</span><span>25</span><span>30</span><span>35</span><span>40</span><span>45</span></div>
+        <p class="hint" id="b-note">Ajoute ta taille dans « Objectifs » pour calculer ton IMC.</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Poids actuel</span><b id="s-current">—</b></div>
+      <div class="stat"><span>Reste à perdre</span><b id="s-left">—</b></div>
+      <div class="stat"><span>Prochaine injection</span><b id="s-next">—</b></div>
+    </div>
+    <p class="hint" id="s-proj"></p>
+  </section>
+
+  <section class="card" id="entry-card">
+    <h2>📸 Mon entrée du jour</h2>
+    <form id="f-entry">
+      <div class="row">
+        <div><label for="e-date">Date</label><input type="date" id="e-date" required></div>
+        <div><label for="e-weight">Poids (<span class="u">lb</span>)</label><input type="number" id="e-weight" step="0.1" min="40" max="900" inputmode="decimal"></div>
+      </div>
+      <label>Photo</label>
+      <div class="photo-btns">
+        <label for="e-camera">📷 Prendre une photo<input type="file" id="e-camera" accept="image/*" capture="user"></label>
+        <label for="e-gallery">🖼️ Choisir une photo<input type="file" id="e-gallery" accept="image/*"></label>
+      </div>
+      <p class="drop-note">Sur ordinateur, tu peux aussi glisser une photo dans ce bloc.</p>
+      <img id="e-preview" class="preview" alt="Aperçu de la photo du jour" hidden>
+      <label>Comment je me sens</label>
+      <div class="moods" id="moods"></div>
+      <label>Effets ressentis</label>
+      <div class="tags" id="tags"></div>
+      <label for="e-note">Notes</label>
+      <textarea id="e-note" placeholder="Faim, énergie, repas, sommeil…"></textarea>
+      <p></p>
+      <button type="submit" id="b-save-entry">Enregistrer la journée</button>
+    </form>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <h2>💉 Mes injections</h2>
+      <form id="f-dose">
+        <div class="row">
+          <div><label for="d-time">Date et heure</label><input type="datetime-local" id="d-time" required></div>
+          <div><label for="d-mg">Dose (mg)</label><input type="number" id="d-mg" step="0.05" min="0" list="mgs" inputmode="decimal" required>
+            <datalist id="mgs"><option value="0.25"><option value="0.5"><option value="1"><option value="1.7"><option value="2"></datalist></div>
+        </div>
+        <p></p>
+        <button type="submit">Ajouter la dose</button>
+      </form>
+      <p></p>
+      <div class="list" id="dose-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>🏃‍♀️ Mes activités sportives</h2>
+      <form id="f-act">
+        <label>Activité</label>
+        <div class="chips" id="act-types"></div>
+        <div class="row">
+          <div><label for="a-date">Date</label><input type="date" id="a-date" required></div>
+          <div><label for="a-min">Durée (min)</label><input type="number" id="a-min" min="1" max="600" step="1" inputmode="numeric"></div>
+        </div>
+        <div class="row">
+          <div><label for="a-extra" id="a-extra-lbl">Distance (km)</label><input type="number" id="a-extra" min="0" step="0.1" inputmode="decimal"></div>
+          <div><label for="a-int">Intensité</label><select id="a-int"><option value="Légère">Légère</option><option value="Modérée" selected>Modérée</option><option value="Intense">Intense</option></select></div>
+        </div>
+        <p></p>
+        <button type="submit">Ajouter l'activité</button>
+      </form>
+      <div class="act-sum">
+        <div><b id="a-week-min">0 min</b>7 derniers jours</div>
+        <div><b id="a-week-n">0</b>séances</div>
+        <div><b id="a-streak">0/7</b>jours actifs</div>
+      </div>
+      <div class="list" id="act-list"></div>
+    </section>
+  </div>
+
+  <section class="card full">
+    <h2>📉 Ma courbe de poids</h2>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>Poids</span>
+      <span><i style="background:var(--accent2)"></i>Projection au rythme actuel</span>
+      <span><i style="background:var(--ok)"></i>Objectif</span>
+    </div>
+    <canvas id="c-weight"></canvas>
+  </section>
+
+
+  <section class="card full">
+    <h2>🗓️ Mon journal photo</h2>
+    <div class="journal" id="journal"></div>
+  </section>
+
+  <section class="card full">
+    <h2>🎯 Objectifs et sauvegarde</h2>
+    <form id="f-settings">
+      <div class="row" style="flex-wrap:wrap">
+        <div style="min-width:130px"><label for="g-start">Poids de départ</label><input type="number" id="g-start" step="0.1" inputmode="decimal"></div>
+        <div style="min-width:130px"><label for="g-goal">Poids visé</label><input type="number" id="g-goal" step="0.1" inputmode="decimal"></div>
+        <div style="min-width:100px"><label for="g-unit">Unité</label><select id="g-unit"><option value="lb">lb</option><option value="kg">kg</option></select></div>
+        <div style="min-width:130px"><label for="g-int">Jours entre les injections</label><input type="number" id="g-int" min="1" value="7" inputmode="numeric"></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap">
+        <div id="h-imp" class="row" style="min-width:200px"><div><label for="g-ft">Taille (pi)</label><input type="number" id="g-ft" min="3" max="8" step="1" inputmode="numeric"></div><div><label for="g-in">(po)</label><input type="number" id="g-in" min="0" max="11.9" step="0.5" inputmode="decimal"></div></div>
+        <div id="h-met" style="min-width:130px" hidden><label for="g-cm">Taille (cm)</label><input type="number" id="g-cm" min="90" max="250" step="0.5" inputmode="decimal"></div>
+      </div>
+      <p></p>
+      <button type="submit">Enregistrer mes objectifs</button>
+    </form>
+    <p></p>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="ghost" id="b-export" type="button" style="min-width:200px">⬇️ Exporter une sauvegarde</button>
+      <label class="ghost" for="i-file" style="min-width:200px;margin:0;display:flex;align-items:center;justify-content:center;padding:11px 14px;border-radius:10px;background:var(--soft);color:var(--ink);font-size:15px;cursor:pointer">⬆️ Importer une sauvegarde</label>
+      <input type="file" id="i-file" accept=".json,application/json" hidden>
+    </div>
+    <p class="hint">Tes données sont gardées sur cet appareil. Avec Google Drive connecté, une copie est aussi gardée dans un dossier caché de ton Drive : c'est ce qui synchronise ton téléphone et ton ordi, et ce qui te permet de tout retrouver sur un nouveau téléphone.</p>
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;color:var(--muted);font-size:13px">Réglage Google (une seule fois)</summary>
+      <label for="g-client">ID client OAuth Google</label>
+      <input type="text" id="g-client" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+      <p class="hint">Adresse à autoriser chez Google : <code id="redirect-uri"></code></p>
+      <p></p>
+      <button type="button" class="ghost" id="b-client">Enregistrer l'ID</button>
+      <button type="button" class="ghost" id="b-disconnect" style="margin-left:6px">Déconnecter Drive</button>
+    </details>
+  </section>
+</main>
+<footer class="disclaimer">
+  <b>Avertissement</b> — GLPivo est un outil d'information et de suivi général. Il ne fournit aucun avis médical, diagnostic ni recommandation de traitement ou de dose, et ne remplace pas un professionnel de la santé. Les noms de médicaments appartiennent à leurs propriétaires respectifs. Tes données restent sur ton appareil et, si tu l'actives, dans ton propre Google Drive.
+</footer>
+</div>
+
+<div class="lightbox" id="lightbox" hidden><img alt="Photo agrandie"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ================== RÉGLAGE GOOGLE ==================
+// L'ID client OAuth (pas un secret). Peut aussi être collé dans « Réglage Google ».
+const DEFAULT_CLIENT_ID = '';
+// ====================================================
+
+// ---------- Utilitaires ----------
+const $ = s => document.querySelector(s);
+const DAY = 864e5;
+const MOODS = ['😞','😕','😐','🙂','😄'];
+const TAGS = ['Nausée','Fatigue','Peu de faim',"Brûlures d'estomac",'Constipation','Mal de tête',"Pleine d'énergie",'Fringales'];
+const ACTS = [
+  {name:'Tapis roulant',icon:'🏃‍♀️',extra:'Distance (km)',unit:'km'},
+  {name:'Rameur',icon:'🚣‍♀️',extra:'Distance (m)',unit:'m'},
+  {name:'Redressements assis',icon:'💪',extra:'Répétitions',unit:'rép.'},
+  {name:'TRX',icon:'🤸‍♀️',extra:'Séries',unit:'séries'},
+  {name:'Piscine',icon:'🏊‍♀️',extra:'Longueurs',unit:'longueurs'},
+  {name:'Marche',icon:'🚶‍♀️',extra:'Distance (km)',unit:'km'}
+];
+const pad2 = n => String(n).padStart(2,'0');
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; };
+const nowLocal = () => { const d=new Date(); return `${todayStr()}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const dateToTime = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,12).getTime(); };
+const isoLocal = t => { const d=new Date(t); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; };
+const fmtDate = t => new Date(t).toLocaleDateString('fr-CA',{day:'numeric',month:'short'});
+const fmtLong = t => new Date(t).toLocaleDateString('fr-CA',{weekday:'long',day:'numeric',month:'long'});
+const fmtNum = (v,d=1) => Number(v).toLocaleString('fr-CA',{maximumFractionDigits:d});
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const rid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const ls = { get(k){ try{ return localStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} } };
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),2800); }
+function banner(msg,err){ const b=$('#banner'); if(!msg){ b.hidden=true; return; } b.hidden=false; b.textContent=msg; b.classList.toggle('err',!!err); }
+function delButton(onConfirm){
+  const b=document.createElement('button'); b.type='button'; b.className='del'; b.textContent='✕'; b.title='Supprimer';
+  b.onclick=async()=>{
+    if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent='Supprimer?'; clearTimeout(b.t); b.t=setTimeout(()=>{ b.classList.remove('armed'); b.textContent='✕'; },3500); return; }
+    b.disabled=true; await onConfirm();
+  };
+  return b;
+}
+
+// ---------- Base de données sur l'appareil (IndexedDB) ----------
+let idb;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('glpivo',1);
+    r.onupgradeneeded=()=>{ const d=r.result; for(const n of ['entries','doses','activities','photos','meta']) if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:n==='meta'?'key':'id'}); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+const store=(n,m='readonly')=>idb.transaction(n,m).objectStore(n);
+const rq=r=>new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+const getAll=n=>rq(store(n).getAll());
+const getOne=(n,k)=>rq(store(n).get(k));
+const put=(n,v)=>rq(store(n,'readwrite').put(v));
+const del=(n,k)=>rq(store(n,'readwrite').delete(k));
+
+// Chaque enregistrement porte updatedAt; une suppression laisse une « pierre tombale » (deleted:true) pour que la synchro la propage.
+const DEFAULT_SETTINGS={key:'settings',unit:'lb',startWeight:null,goalWeight:null,interval:7,updatedAt:0};
+let raw={entries:[],doses:[],activities:[],settings:{...DEFAULT_SETTINGS}};
+let state={entries:[],doses:[],activities:[],settings:{...DEFAULT_SETTINGS}};
+async function load(){
+  raw.entries=await getAll('entries'); raw.doses=await getAll('doses'); raw.activities=await getAll('activities');
+  raw.settings={...DEFAULT_SETTINGS,...(await getOne('meta','settings')||{})};
+  state.entries=raw.entries.filter(x=>!x.deleted).sort((a,b)=>a.date.localeCompare(b.date));
+  state.doses=raw.doses.filter(x=>!x.deleted).sort((a,b)=>a.time-b.time);
+  state.activities=raw.activities.filter(x=>!x.deleted).sort((a,b)=>a.date.localeCompare(b.date)||(a.updatedAt||0)-(b.updatedAt||0));
+  state.settings=raw.settings;
+}
+async function refresh(){ await load(); renderAll(); }
+async function saveRec(n,v){ await put(n,{...v,updatedAt:Date.now()}); }
+async function removeRec(n,id){ await put(n,{id,deleted:true,updatedAt:Date.now()}); }
+// Les URL d'aperçu des photos sont créées une fois par photo
+const photoUrls=new Map();
+async function photoUrl(id){
+  if(photoUrls.has(id)) return photoUrls.get(id);
+  const p=await getOne('photos',id); if(!p) return null;
+  const u=URL.createObjectURL(p.blob); photoUrls.set(id,u); return u;
+}
+
+// ---------- Photo : réduite pour prendre peu de place ----------
+function resizeImage(file,max=1100){
+  return new Promise((res,rej)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const k=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',0.82);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('decode')); };
+    img.src=url;
+  });
+}
+
+// ---------- Projection du poids ----------
+function weightPoints(){ return state.entries.filter(e=>e.weight!=null).map(e=>({x:dateToTime(e.date),y:e.weight})); }
+function trend(){
+  const pts=weightPoints(); if(pts.length<2) return null;
+  const last=pts[pts.length-1].x;
+  let use=pts.filter(p=>p.x>=last-28*DAY); if(use.length<2) use=pts;
+  const n=use.length, mx=use.reduce((a,p)=>a+p.x,0)/n, my=use.reduce((a,p)=>a+p.y,0)/n;
+  let num=0,den=0; use.forEach(p=>{num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)**2;});
+  if(!den) return null;
+  return {perDay:(num/den)*DAY,last:pts[pts.length-1]};
+}
+
+// ---------- Graphiques ----------
+function drawChart(canvas,o){
+  const dpr=window.devicePixelRatio||1, w=canvas.clientWidth, h=canvas.clientHeight; if(!w) return;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,w,h);
+  const muted=cssVar('--muted'), line=cssVar('--line');
+  ctx.font='12px system-ui,sans-serif'; ctx.fillStyle=muted;
+  if(o.empty){ ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.empty,w/2,h/2); return; }
+  const P={l:48,r:14,t:14,b:28}, pw=w-P.l-P.r, ph=h-P.t-P.b;
+  const X=x=>P.l+(x-o.xMin)/((o.xMax-o.xMin)||1)*pw;
+  const Y=y=>P.t+(1-(y-o.yMin)/((o.yMax-o.yMin)||1))*ph;
+  ctx.strokeStyle=line; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const v=o.yMin+(o.yMax-o.yMin)*i/4, y=Y(v); ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(w-P.r,y); ctx.stroke(); ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(fmtNum(v,o.yDec??1),P.l-6,y); }
+  const n=Math.max(2,Math.min(7,Math.floor(pw/80))); ctx.textBaseline='top';
+  for(let i=0;i<=n;i++){ const x=o.xMin+(o.xMax-o.xMin)*i/n; ctx.textAlign=i===0?'left':i===n?'right':'center'; ctx.fillText(fmtDate(x),X(x),h-P.b+8); }
+  (o.hLines||[]).forEach(l=>{ ctx.strokeStyle=l.color; ctx.setLineDash([6,5]); ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(P.l,Y(l.y)); ctx.lineTo(w-P.r,Y(l.y)); ctx.stroke(); ctx.setLineDash([]); });
+  if(o.nowLine){ const x=X(Date.now()); ctx.strokeStyle=muted; ctx.setLineDash([2,4]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,P.t); ctx.lineTo(x,P.t+ph); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=muted; ctx.textAlign=x>w-90?'right':'left'; ctx.textBaseline='top'; ctx.fillText('maintenant',x>w-90?x-4:x+4,P.t); }
+  o.series.forEach(s=>{
+    if(!s.points.length) return;
+    if(s.fill){ const g=ctx.createLinearGradient(0,P.t,0,P.t+ph); g.addColorStop(0,s.fill); g.addColorStop(1,'transparent'); ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(X(s.points[0].x),Y(o.yMin)); s.points.forEach(p=>ctx.lineTo(X(p.x),Y(p.y))); ctx.lineTo(X(s.points[s.points.length-1].x),Y(o.yMin)); ctx.fill(); }
+    ctx.strokeStyle=s.color; ctx.lineWidth=s.width||2.5; ctx.setLineDash(s.dash||[]); ctx.lineJoin='round';
+    ctx.beginPath(); s.points.forEach((p,i)=>i?ctx.lineTo(X(p.x),Y(p.y)):ctx.moveTo(X(p.x),Y(p.y))); ctx.stroke(); ctx.setLineDash([]);
+    if(s.dots){ ctx.fillStyle=s.color; s.points.forEach(p=>{ ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),3.5,0,7); ctx.fill(); }); }
+  });
+  (o.markers||[]).forEach(m=>{ ctx.fillStyle=m.color; ctx.beginPath(); ctx.arc(X(m.x),P.t+ph,4,0,7); ctx.fill(); });
+}
+function renderWeightChart(){
+  const pts=weightPoints(), goal=state.settings.goalWeight;
+  if(!pts.length) return drawChart($('#c-weight'),{empty:'Ta courbe apparaîtra dès ta première pesée.'});
+  const t=trend(); let proj=[];
+  if(t && t.perDay<0 && goal!=null && t.last.y>goal){ const days=Math.min((t.last.y-goal)/-t.perDay,180); proj=[t.last,{x:t.last.x+days*DAY,y:t.last.y+t.perDay*days}]; }
+  const all=[...pts,...proj], ys=all.map(p=>p.y); if(goal!=null) ys.push(goal);
+  const yMin=Math.min(...ys), yMax=Math.max(...ys), padY=Math.max(2,(yMax-yMin)*0.12);
+  const xMin=all[0].x; let xMax=Math.max(...all.map(p=>p.x)); if(xMax-xMin<7*DAY) xMax=xMin+7*DAY;
+  drawChart($('#c-weight'),{xMin,xMax,yMin:yMin-padY,yMax:yMax+padY,hLines:goal!=null?[{y:goal,color:cssVar('--ok')}]:[],
+    series:[{points:pts,color:cssVar('--accent'),dots:true,fill:cssVar('--accent')+'33'},{points:proj,color:cssVar('--accent2'),dash:[7,6],width:2}]});
+}
+
+// ---------- Affichage ----------
+function renderProgress(start,cur,goal,u){
+  const arc=$('#ring-arc'), C=2*Math.PI*52;
+  if(cur==null||start==null||goal==null||start<=goal){
+    arc.setAttribute('stroke-dasharray',`0 ${C}`); $('#p-pct').textContent='—';
+    $('#p-lost').textContent='Ta progression';
+    $('#p-sub').textContent=cur==null?'Entre ta première pesée pour commencer.':'Entre ton poids visé dans « Objectifs » pour voir ton pourcentage.';
+    return;
+  }
+  const raw=(start-cur)/(start-goal)*100, pct=Math.max(0,Math.min(100,raw));
+  arc.setAttribute('stroke-dasharray',`${C*pct/100} ${C}`);
+  arc.setAttribute('stroke',pct>=100?cssVar('--ok'):cssVar('--accent'));
+  $('#p-pct').textContent=`${Math.round(pct)} %`;
+  const lost=start-cur;
+  $('#p-lost').textContent=lost>=0?`${fmtNum(lost)} ${u} perdues`:`${fmtNum(-lost)} ${u} de plus qu'au départ`;
+  $('#p-sub').textContent=pct>=100?`Objectif de ${fmtNum(goal)} ${u} atteint 🎉`:`Sur ${fmtNum(start-goal)} ${u} visées · de ${fmtNum(start)} à ${fmtNum(goal)} ${u}`;
+}
+const BMI_CATS=[[18.5,'Poids insuffisant','--b1'],[25,'Poids normal','--b2'],[30,'Embonpoint','--b3'],[35,'Obésité classe I','--b4'],[40,'Obésité classe II','--b5'],[Infinity,'Obésité classe III','--b6']];
+const toKg=(w,u)=>u==='lb'?w*0.45359237:w;
+const bmiPos=v=>Math.max(0,Math.min(100,(v-15)/30*100));
+function renderBmi(cur,goal,u){
+  const h=state.settings.heightCm, mark=$('#b-mark'), gm=$('#b-goalmark');
+  if(!h||cur==null){ $('#b-val').textContent='—'; $('#b-cat').textContent=''; mark.hidden=true; gm.hidden=true;
+    $('#b-note').textContent=!h?'Ajoute ta taille dans « Objectifs » pour calculer ton IMC.':'Entre ton poids pour calculer ton IMC.'; return; }
+  const m=h/100, bmi=toKg(cur,u)/(m*m), cat=BMI_CATS.find(c=>bmi<c[0]);
+  $('#b-val').textContent=fmtNum(bmi,1); $('#b-cat').textContent=cat[1]; $('#b-cat').style.color='';
+  mark.hidden=false; mark.style.left=bmiPos(bmi)+'%';
+  let note='Indicateur général pour adultes : il ne tient pas compte de la masse musculaire, de l\'âge ni de la morphologie.';
+  if(goal!=null){ const gb=toKg(goal,u)/(m*m); gm.hidden=false; gm.style.left=bmiPos(gb)+'%'; note=`À ton poids visé : IMC ${fmtNum(gb,1)} (rond vert). `+note; } else gm.hidden=true;
+  $('#b-note').textContent=note;
+}
+function renderStats(){
+  const u=state.settings.unit, pts=weightPoints(), goal=state.settings.goalWeight;
+  const start=state.settings.startWeight ?? (pts[0]?.y ?? null);
+  const cur=pts.length?pts[pts.length-1].y:null;
+  $('#s-current').textContent=cur!=null?`${fmtNum(cur)} ${u}`:'—';
+  $('#s-left').textContent=(cur!=null&&goal!=null)?`${fmtNum(Math.max(0,cur-goal))} ${u}`:'—';
+  renderProgress(start,cur,goal,u); renderBmi(cur,goal,u);
+  if(state.doses.length){
+    const next=state.doses[state.doses.length-1].time+state.settings.interval*DAY;
+    const days=Math.round((dateToTime(isoLocal(next))-dateToTime(todayStr()))/DAY);
+    $('#s-next').textContent=days>1?`dans ${days} jours`:days===1?'demain':days===0?"aujourd'hui":`en retard de ${-days} j`;
+    $('#s-next').title=fmtLong(next);
+  } else $('#s-next').textContent='—';
+  const t=trend(); let txt='';
+  if(t){
+    const wk=t.perDay*7;
+    txt=`Rythme des 4 dernières semaines : ${wk<=0?'−':'+'}${fmtNum(Math.abs(wk),2)} ${u}/semaine.`;
+    if(goal!=null && t.perDay<0 && t.last.y>goal){ const eta=t.last.x+((t.last.y-goal)/-t.perDay)*DAY; txt+=` À ce rythme, ton objectif serait atteint vers le ${fmtLong(eta)}.`; }
+    else if(goal!=null && cur!=null && cur<=goal) txt+=' 🎉 Objectif atteint!';
+  } else txt='Entre ton poids au moins deux journées différentes pour voir ta projection.';
+  if(goal==null) txt+=' Ajoute ton poids visé plus bas pour voir la date prévue.';
+  $('#s-proj').textContent=txt;
+}
+function renderDoses(){
+  const box=$('#dose-list'); box.innerHTML='';
+  if(!state.doses.length){ box.innerHTML='<p class="hint">Aucune dose enregistrée pour l\'instant. Ajoute ta dernière piqûre pour voir ta prochaine date.</p>'; return; }
+  [...state.doses].reverse().forEach(d=>{
+    const row=document.createElement('div'); row.className='item';
+    const txt=document.createElement('span');
+    txt.textContent=`${new Date(d.time).toLocaleString('fr-CA',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${fmtNum(d.mg,2)} mg`;
+    row.append(txt,delButton(async()=>{ await removeRec('doses',d.id); await changed(); })); box.append(row);
+  });
+}
+function renderActivities(){
+  const box=$('#act-list'); box.innerHTML='';
+  const since=dateToTime(todayStr())-6*DAY;
+  const week=state.activities.filter(a=>dateToTime(a.date)>=since);
+  $('#a-week-min').textContent=`${week.reduce((s,a)=>s+(a.minutes||0),0)} min`;
+  $('#a-week-n').textContent=week.length;
+  $('#a-streak').textContent=`${new Set(week.map(a=>a.date)).size}/7`;
+  if(!state.activities.length){ box.innerHTML='<p class="hint">Aucune activité pour l\'instant. Choisis une activité, entre la durée et ajoute-la.</p>'; return; }
+  [...state.activities].reverse().forEach(a=>{
+    const def=ACTS.find(x=>x.name===a.type)||{icon:'⭐',unit:''};
+    const row=document.createElement('div'); row.className='item';
+    const txt=document.createElement('span');
+    const bits=[]; if(a.minutes) bits.push(`${a.minutes} min`); if(a.extra!=null) bits.push(`${fmtNum(a.extra,2)} ${def.unit}`); if(a.intensity) bits.push(a.intensity);
+    txt.textContent=`${def.icon} ${a.type} · ${bits.join(' · ')} `;
+    const sm=document.createElement('small'); sm.textContent=`— ${fmtDate(dateToTime(a.date))}`; txt.append(sm);
+    row.append(txt,delButton(async()=>{ await removeRec('activities',a.id); await changed(); })); box.append(row);
+  });
+}
+function renderJournal(){
+  const box=$('#journal'); box.innerHTML=''; const u=state.settings.unit;
+  if(!state.entries.length){ box.innerHTML='<p class="hint">Ton journal apparaîtra ici : une carte par journée, avec ta photo, ton poids et ton humeur.</p>'; return; }
+  [...state.entries].reverse().forEach(e=>{
+    const card=document.createElement('div'); card.className='entry';
+    if(e.photoId){
+      const img=document.createElement('img'); img.alt='Photo du '+fmtLong(dateToTime(e.date));
+      photoUrl(e.photoId).then(u=>{ if(u){ img.src=u; img.onclick=()=>openLightbox(u); } else { img.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'Photo dans Drive (synchronise)'})); } });
+      card.append(img);
+    } else { const n=document.createElement('div'); n.className='noimg'; n.textContent='Pas de photo'; card.append(n); }
+    const m=document.createElement('div'); m.className='meta';
+    const top=document.createElement('div'); top.className='top';
+    const b=document.createElement('b'); b.textContent=`${e.mood!=null?MOODS[e.mood]+' ':''}${e.weight!=null?fmtNum(e.weight)+' '+u:''}`;
+    top.append(b,delButton(async()=>{ await removeRec('entries',e.id); if(e.photoId) await del('photos',e.photoId); await changed(); if($('#e-date').value===e.id) fillEntryForm(); }));
+    const d=document.createElement('div'); d.textContent=fmtLong(dateToTime(e.date));
+    m.append(top,d);
+    if(e.tags?.length){ const tg=document.createElement('div'); tg.className='tg'; tg.textContent=e.tags.join(' · '); m.append(tg); }
+    if(e.note){ const nt=document.createElement('div'); nt.textContent=e.note; nt.style.marginTop='4px'; m.append(nt); }
+    card.append(m); box.append(card);
+  });
+}
+let settingsDirty=false;
+function renderSettings(){
+  if(settingsDirty) return;
+  const s=state.settings;
+  $('#g-start').value=s.startWeight??''; $('#g-goal').value=s.goalWeight??''; $('#g-unit').value=s.unit; $('#g-int').value=s.interval;
+  if(s.heightCm){ const tin=s.heightCm/2.54; let ft=Math.floor(tin/12), inch=Math.round((tin-ft*12)*2)/2; if(inch>=12){ ft++; inch=0; } $('#g-ft').value=ft; $('#g-in').value=inch; $('#g-cm').value=Math.round(s.heightCm*2)/2; }
+  else { $('#g-ft').value=''; $('#g-in').value=''; $('#g-cm').value=''; }
+  paintHeightUnit();
+  document.querySelectorAll('.u').forEach(x=>x.textContent=s.unit);
+}
+['#g-start','#g-goal','#g-unit','#g-int','#g-ft','#g-in','#g-cm'].forEach(id=>$(id).addEventListener('input',()=>settingsDirty=true));
+function paintHeightUnit(){ const imp=$('#g-unit').value==='lb'; $('#h-imp').hidden=!imp; $('#h-met').hidden=imp; }
+$('#g-unit').addEventListener('change',paintHeightUnit);
+function readHeightCm(){
+  if($('#g-unit').value==='lb'){ const ft=parseFloat($('#g-ft').value), inch=parseFloat($('#g-in').value)||0; return isNaN(ft)?null:Math.round((ft*12+inch)*2.54*10)/10; }
+  const cm=parseFloat($('#g-cm').value); return isNaN(cm)?null:cm;
+}
+function renderAll(){ renderStats(); renderDoses(); renderActivities(); renderJournal(); renderSettings(); renderWeightChart(); }
+
+// Après chaque changement : réafficher, puis synchroniser en arrière-plan si Drive est connecté
+async function changed(){ await refresh(); scheduleSync(); }
+
+// ---------- Formulaire du jour ----------
+let mood=null, tags=new Set(), pendingPhoto=null, actType='Marche';
+function buildPickers(){
+  MOODS.forEach((m,i)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=m; b.setAttribute('aria-label','Humeur '+(i+1)+' sur 5'); b.onclick=()=>{ mood=mood===i?null:i; paintPickers(); }; $('#moods').append(b); });
+  TAGS.forEach(t=>{ const b=document.createElement('button'); b.type='button'; b.textContent=t; b.onclick=()=>{ tags.has(t)?tags.delete(t):tags.add(t); paintPickers(); }; $('#tags').append(b); });
+  ACTS.forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.textContent=`${a.icon} ${a.name}`; b.dataset.name=a.name; b.onclick=()=>{ actType=a.name; paintActTypes(); }; $('#act-types').append(b); });
+}
+function paintPickers(){
+  [...$('#moods').children].forEach((b,i)=>b.classList.toggle('on',i===mood));
+  [...$('#tags').children].forEach(b=>b.classList.toggle('on',tags.has(b.textContent)));
+}
+function paintActTypes(){
+  [...$('#act-types').children].forEach(b=>b.classList.toggle('on',b.dataset.name===actType));
+  $('#a-extra-lbl').textContent=ACTS.find(a=>a.name===actType).extra;
+}
+async function fillEntryForm(){
+  const e=state.entries.find(x=>x.id===$('#e-date').value);
+  $('#e-weight').value=e?.weight??''; $('#e-note').value=e?.note??'';
+  mood=e?.mood??null; tags=new Set(e?.tags||[]); paintPickers();
+  pendingPhoto=null; const p=$('#e-preview');
+  const u=e?.photoId?await photoUrl(e.photoId):null;
+  if(u){ p.src=u; p.hidden=false; } else { p.removeAttribute('src'); p.hidden=true; }
+}
+$('#e-date').addEventListener('change',fillEntryForm);
+function setPendingPhoto(file){
+  if(!file) return;
+  pendingPhoto=file; const p=$('#e-preview'); p.src=URL.createObjectURL(file); p.hidden=false;
+}
+['#e-camera','#e-gallery'].forEach(id=>$(id).addEventListener('change',e=>{ setPendingPhoto(e.target.files[0]); e.target.value=''; }));
+const entryCard=$('#entry-card');
+entryCard.addEventListener('dragover',e=>{ if([...e.dataTransfer.types].includes('Files')){ e.preventDefault(); entryCard.classList.add('drop-over'); } });
+entryCard.addEventListener('dragleave',e=>{ if(!entryCard.contains(e.relatedTarget)) entryCard.classList.remove('drop-over'); });
+entryCard.addEventListener('drop',e=>{ e.preventDefault(); entryCard.classList.remove('drop-over'); setPendingPhoto(e.dataTransfer.files[0]); });
+
+$('#f-entry').addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  const btn=$('#b-save-entry'); btn.disabled=true;
+  try{
+    const date=$('#e-date').value, old=state.entries.find(x=>x.id===date);
+    const w=parseFloat($('#e-weight').value);
+    let photoId=old?.photoId||null;
+    if(pendingPhoto){
+      let blob; try{ blob=await resizeImage(pendingPhoto); }catch{ toast('Cette photo n\'a pas pu être lue.'); return; }
+      const newId='p-'+rid(); await put('photos',{id:newId,blob});
+      if(photoId) await del('photos',photoId);
+      photoId=newId;
+    }
+    const firstWeight=!isNaN(w) && !state.entries.some(e=>e.weight!=null);
+    await saveRec('entries',{id:date,date,weight:isNaN(w)?null:w,mood,tags:[...tags],note:$('#e-note').value.trim(),photoId});
+    if(firstWeight && state.settings.startWeight==null) await put('meta',{...state.settings,startWeight:w,updatedAt:Date.now()});
+    pendingPhoto=null; toast('Journée enregistrée ✓');
+    await changed();
+  }finally{ btn.disabled=false; }
+});
+
+$('#f-dose').addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  const time=new Date($('#d-time').value).getTime(), mg=parseFloat($('#d-mg').value);
+  if(isNaN(time)||isNaN(mg)) return;
+  await saveRec('doses',{id:'d-'+rid(),time,mg});
+  $('#d-time').value=nowLocal(); toast('Dose ajoutée ✓'); await changed();
+});
+
+$('#f-act').addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  const min=parseInt($('#a-min').value), ex=parseFloat($('#a-extra').value);
+  if(isNaN(min) && isNaN(ex)){ toast('Indique au moins une durée.'); return; }
+  await saveRec('activities',{id:'a-'+rid(),date:$('#a-date').value,type:actType,minutes:isNaN(min)?null:min,extra:isNaN(ex)?null:ex,intensity:$('#a-int').value});
+  $('#a-min').value=''; $('#a-extra').value=''; toast('Activité ajoutée ✓'); await changed();
+});
+
+$('#f-settings').addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  const n=v=>{ const x=parseFloat(v); return isNaN(x)?null:x; };
+  await put('meta',{...state.settings,startWeight:n($('#g-start').value),goalWeight:n($('#g-goal').value),unit:$('#g-unit').value,interval:Math.max(1,parseInt($('#g-int').value)||7),heightCm:readHeightCm(),updatedAt:Date.now()});
+  settingsDirty=false; toast('Objectifs enregistrés ✓'); await changed();
+});
+
+// ---------- Sauvegarde en fichier ----------
+function blobToDataUrl(b){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); }); }
+$('#b-export').onclick=async()=>{
+  const entries=[];
+  for(const e of state.entries){ const p=e.photoId?await getOne('photos',e.photoId):null; entries.push({...e,photo:p?await blobToDataUrl(p.blob):null}); }
+  const data={app:'glpivo-backup',version:1,exported:new Date().toISOString(),entries,doses:state.doses,activities:state.activities,settings:state.settings};
+  const file=new File([JSON.stringify(data)],`glpivo-sauvegarde-${todayStr()}.json`,{type:'application/json'});
+  // Sur iPhone, le menu Partager permet d'enregistrer dans Fichiers
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:'Sauvegarde GLPivo'}); return; }catch(e){ if(e.name==='AbortError') return; } }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=file.name; document.body.append(a); a.click(); a.remove();
+  toast('Sauvegarde téléchargée ✓');
+};
+$('#i-file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  let data; try{ data=JSON.parse(await f.text()); if(!['glpivo-backup','meagain-local'].includes(data.app)) throw 0; }catch{ toast('Ce fichier n\'est pas une sauvegarde GLPivo.'); return; }
+  banner('Importation en cours…'); let n=0;
+  for(const x of data.entries||[]){
+    const date=x.date||x.id; if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    let photoId=null;
+    if(x.photo && /^data:image\//.test(x.photo)){ try{ const b=await (await fetch(x.photo)).blob(); photoId='p-'+rid(); await put('photos',{id:photoId,blob:b}); }catch{} }
+    const old=raw.entries.find(r=>r.id===date); if(old?.photoId && photoId) await del('photos',old.photoId);
+    await saveRec('entries',{id:date,date,weight:x.weight??null,mood:x.mood??null,tags:x.tags||[],note:x.note||'',photoId:photoId||old?.photoId||null}); n++;
+  }
+  for(const x of data.doses||[]) if(x.time&&x.mg!=null) await saveRec('doses',{id:'d-'+(x.id||x.time),time:x.time,mg:x.mg});
+  for(const x of data.activities||[]) if(x.date&&x.type) await saveRec('activities',{id:'a-'+(x.id||rid()),date:x.date,type:x.type,minutes:x.minutes??null,extra:x.extra??null,intensity:x.intensity||'Modérée'});
+  if(data.settings){ const {key,unitChosen,updatedAt,...s}=data.settings; await put('meta',{...DEFAULT_SETTINGS,...s,key:'settings',updatedAt:Date.now()}); settingsDirty=false; }
+  banner(null); toast(`${n} journée(s) importée(s) ✓`); await changed(); fillEntryForm();
+});
+
+// ---------- Synchronisation Google Drive (dossier caché de l'app) ----------
+// Les données restent sur l'appareil; une copie va dans « appDataFolder » de TON Drive, invisible dans ton Drive et accessible seulement par cette app.
+const SCOPE='https://www.googleapis.com/auth/drive.appdata';
+const DATA_NAME='glpivo-data.json';
+const REDIRECT_URI=location.origin+location.pathname;
+const clientId=()=>ls.get('glp.clientId')||DEFAULT_CLIENT_ID;
+function getToken(){ try{ const t=JSON.parse(ls.get('glp.token')||'null'); return t && t.exp>Date.now()+60e3 ? t.value : null; }catch{ return null; } }
+const everConnected=()=>ls.get('glp.connected')==='1';
+function connectDrive(){
+  if(!clientId()){ document.querySelector('details').open=true; $('#g-client').focus(); toast('Colle d\'abord ton ID client Google.'); return; }
+  const st=rid(); ls.set('glp.oauthState',st);
+  const p=new URLSearchParams({client_id:clientId(),redirect_uri:REDIRECT_URI,response_type:'token',scope:SCOPE,state:st,include_granted_scopes:'true'});
+  if(!everConnected()) p.set('prompt','consent');
+  location.href='https://accounts.google.com/o/oauth2/v2/auth?'+p;
+}
+function readRedirect(){
+  if(!location.hash.includes('access_token') && !location.hash.includes('error=')) return false;
+  const h=new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null,'',location.pathname);
+  if(h.get('state')!==ls.get('glp.oauthState')){ toast('La connexion à Google a échoué. Réessaie.'); return false; }
+  ls.set('glp.oauthState',null);
+  if(h.get('error')){ toast('Connexion à Google annulée.'); return false; }
+  ls.set('glp.token',JSON.stringify({value:h.get('access_token'),exp:Date.now()+(+h.get('expires_in')||3600)*1000}));
+  ls.set('glp.connected','1');
+  return true;
+}
+async function gfetch(url,opt={}){
+  const tok=getToken(); if(!tok) throw {code:'auth'};
+  const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+tok}});
+  if(r.status===401){ ls.set('glp.token',null); throw {code:'auth'}; }
+  if(!r.ok) throw {code:'http',status:r.status,text:await r.text().catch(()=>'')};
+  return r;
+}
+async function listDrive(){
+  const files=[]; let pageToken='';
+  do{
+    const q=new URLSearchParams({spaces:'appDataFolder',fields:'nextPageToken,files(id,name)',pageSize:'1000'}); if(pageToken) q.set('pageToken',pageToken);
+    const j=await (await gfetch('https://www.googleapis.com/drive/v3/files?'+q)).json();
+    files.push(...j.files); pageToken=j.nextPageToken||'';
+  }while(pageToken);
+  return files;
+}
+async function uploadNew(name,blob){
+  const meta=new Blob([JSON.stringify({name,parents:['appDataFolder']})],{type:'application/json'});
+  const fd=new FormData(); fd.append('metadata',meta); fd.append('file',blob);
+  return (await (await gfetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',body:fd})).json()).id;
+}
+async function uploadReplace(id,blob){ await gfetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',body:blob}); }
+const newer=(a,b)=>!b?a:!a?b:((a.updatedAt||0)>=(b.updatedAt||0)?a:b);
+function mergeLists(local,remote){
+  const m=new Map(); for(const x of remote||[]) m.set(x.id,x);
+  for(const x of local) m.set(x.id,newer(x,m.get(x.id)));
+  return [...m.values()];
+}
+let syncing=false, syncAgain=false, syncTimer=null;
+function scheduleSync(){ if(!getToken()) { paintSync(); return; } clearTimeout(syncTimer); syncTimer=setTimeout(()=>sync(),1500); }
+async function sync(manual){
+  if(!getToken()){ if(manual) connectDrive(); paintSync(); return; }
+  if(syncing){ syncAgain=true; return; }
+  syncing=true; paintSync('busy');
+  try{
+    await load();
+    const files=await listDrive();
+    const dataFile=files.find(f=>f.name===DATA_NAME);
+    let remote={entries:[],doses:[],activities:[],settings:null};
+    if(dataFile){ remote=await (await gfetch(`https://www.googleapis.com/drive/v3/files/${dataFile.id}?alt=media`)).json(); }
+    const merged={
+      entries:mergeLists(raw.entries,remote.entries),
+      doses:mergeLists(raw.doses,remote.doses),
+      activities:mergeLists(raw.activities,remote.activities),
+      settings:newer(raw.settings,remote.settings?{...remote.settings,key:'settings'}:null)
+    };
+    // Photos : envoyer celles qui manquent dans Drive, récupérer celles qui manquent ici, nettoyer les orphelines
+    const remotePhotos=new Map(files.filter(f=>f.name.startsWith('p-')).map(f=>[f.name.replace(/\.jpg$/,''),f.id]));
+    const needed=new Set(merged.entries.filter(e=>!e.deleted&&e.photoId).map(e=>e.photoId));
+    const localPhotoIds=new Set((await getAll('photos')).map(p=>p.id));
+    for(const id of needed){
+      if(localPhotoIds.has(id) && !remotePhotos.has(id)){ const p=await getOne('photos',id); await uploadNew(id+'.jpg',p.blob); }
+      else if(!localPhotoIds.has(id) && remotePhotos.has(id)){ const b=await (await gfetch(`https://www.googleapis.com/drive/v3/files/${remotePhotos.get(id)}?alt=media`)).blob(); await put('photos',{id,blob:b}); }
+    }
+    for(const [id,fid] of remotePhotos) if(!needed.has(id)) await gfetch(`https://www.googleapis.com/drive/v3/files/${fid}`,{method:'DELETE'}).catch(()=>{});
+    for(const id of localPhotoIds) if(!needed.has(id)) await del('photos',id);
+    // Enregistrer le résultat ici puis dans Drive
+    const tx=idb.transaction(['entries','doses','activities','meta'],'readwrite');
+    merged.entries.forEach(x=>tx.objectStore('entries').put(x));
+    merged.doses.forEach(x=>tx.objectStore('doses').put(x));
+    merged.activities.forEach(x=>tx.objectStore('activities').put(x));
+    tx.objectStore('meta').put(merged.settings);
+    await new Promise((res,rej)=>{ tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+    const body=new Blob([JSON.stringify({app:'glpivo',version:1,savedAt:Date.now(),...merged})],{type:'application/json'});
+    if(dataFile) await uploadReplace(dataFile.id,body); else await uploadNew(DATA_NAME,body);
+    ls.set('glp.lastSync',String(Date.now()));
+    await refresh();
+    if(manual) toast('Synchronisé avec Google Drive ✓');
+  }catch(e){
+    if(e?.code==='auth'){ if(manual) connectDrive(); }
+    else { console.warn('sync',e); if(manual) toast('La synchronisation n\'a pas fonctionné. Vérifie ta connexion Internet.'); ls.set('glp.syncError',String(Date.now())); }
+  }finally{
+    syncing=false; paintSync();
+    if(syncAgain){ syncAgain=false; scheduleSync(); }
+  }
+}
+function paintSync(mode){
+  const dot=$('#sync-dot'), title=$('#sync-title'), sub=$('#sync-sub'), btn=$('#b-sync');
+  const last=+ls.get('glp.lastSync')||0;
+  const when=last?new Date(last).toLocaleString('fr-CA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):null;
+  dot.className='dot';
+  if(mode==='busy'){ title.textContent='Synchronisation…'; sub.textContent='Envoi et récupération avec ton Google Drive.'; btn.disabled=true; return; }
+  btn.disabled=false;
+  if(getToken()){ dot.classList.add('ok'); title.textContent='Google Drive connecté'; sub.textContent=when?`Dernière synchro : ${when}`:'Pas encore synchronisé.'; btn.textContent='Synchroniser'; }
+  else if(everConnected()){ dot.classList.add('warn'); title.textContent='Reconnecte Google Drive'; sub.textContent=(when?`Dernière synchro : ${when}. `:'')+'Google demande de te reconnecter environ toutes les heures.'; btn.textContent='Reconnecter et synchroniser'; }
+  else { title.textContent='Google Drive non connecté'; sub.textContent='Tes données sont sur cet appareil. Connecte ton Drive pour en garder une copie.'; btn.textContent='Connecter Google Drive'; }
+}
+$('#b-sync').onclick=()=>sync(true);
+$('#b-client').onclick=()=>{ const v=$('#g-client').value.trim(); ls.set('glp.clientId',v||null); toast(v?'ID enregistré ✓':'ID retiré'); };
+$('#b-disconnect').onclick=()=>{ ls.set('glp.token',null); ls.set('glp.connected',null); paintSync(); toast('Drive déconnecté sur cet appareil. Tes données restent ici.'); };
+
+// ---------- Photo en grand ----------
+function openLightbox(src){ const l=$('#lightbox'); l.querySelector('img').src=src; l.hidden=false; }
+$('#lightbox').onclick=()=>{ $('#lightbox').hidden=true; };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#lightbox').hidden=true; });
+
+// ---------- Démarrage ----------
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ renderWeightChart(); },150); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && getToken()) scheduleSync(); });
+(async()=>{
+  buildPickers(); paintActTypes(); paintPickers();
+  $('#e-date').value=todayStr(); $('#a-date').value=todayStr(); $('#d-time').value=nowLocal();
+  $('#redirect-uri').textContent=REDIRECT_URI; $('#g-client').value=clientId();
+  try{ idb=await openDB(); }catch{ banner('Ce navigateur bloque l\'enregistrement des données (navigation privée?). Ouvre l\'app normalement.',true); return; }
+  try{ navigator.storage?.persist?.(); }catch{}
+  const justConnected=readRedirect();
+  await refresh(); await fillEntryForm();
+  if(state.doses.length) $('#d-mg').value=state.doses[state.doses.length-1].mg;
+  if(ls.get('glp.notice')!=='1') $('#notice').hidden=false;
+  $('#b-notice').onclick=()=>{ ls.set('glp.notice','1'); $('#notice').hidden=true; };
+  paintSync();
+  if(getToken()) sync(justConnected);
+  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
