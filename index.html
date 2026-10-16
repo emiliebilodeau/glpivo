@@ -92,7 +92,7 @@ button.del.armed{color:var(--danger);font-weight:700}
 .photo-btns input{position:absolute;width:1px;height:1px;opacity:0}
 .drop-note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 .drop-over{outline:2px dashed var(--accent);outline-offset:4px}
-.preview{max-width:140px;border-radius:10px;margin-top:8px;display:block}
+.photo-status{margin:8px 0 0;font-size:13.5px;color:var(--ok);font-weight:600}
 canvas{width:100%;height:260px;display:block}
 .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
 .list{display:grid;gap:8px;max-height:200px;overflow:auto}
@@ -207,7 +207,7 @@ canvas{width:100%;height:260px;display:block}
         <label for="e-gallery">🖼️ Choisir une photo<input type="file" id="e-gallery" accept="image/*"></label>
       </div>
       <p class="drop-note">Sur ordinateur, tu peux aussi glisser une photo dans ce bloc.</p>
-      <img id="e-preview" class="preview" alt="Aperçu de la photo du jour" hidden>
+      <p class="photo-status" id="e-photo-status" hidden></p>
       <label>Comment je me sens</label>
       <div class="moods" id="moods"></div>
       <label>Effets ressentis</label>
@@ -641,14 +641,13 @@ async function fillEntryForm(){
   const e=state.entries.find(x=>x.id===$('#e-date').value);
   $('#e-weight').value=e?.weight??''; $('#e-note').value=e?.note??'';
   mood=e?.mood??null; tags=new Set(e?.tags||[]); paintPickers();
-  pendingPhoto=null; const p=$('#e-preview');
-  const u=e?.photoId?await photoUrl(e.photoId):null;
-  if(u){ p.src=u; p.hidden=false; } else { p.removeAttribute('src'); p.hidden=true; }
+  pendingPhoto=null; const st=$('#e-photo-status');
+  if(e?.photoId){ st.textContent='✓ Photo déjà enregistrée pour cette journée (visible dans le journal)'; st.hidden=false; } else st.hidden=true;
 }
 $('#e-date').addEventListener('change',fillEntryForm);
 function setPendingPhoto(file){
   if(!file) return;
-  pendingPhoto=file; const p=$('#e-preview'); p.src=URL.createObjectURL(file); p.hidden=false;
+  pendingPhoto=file; const st=$('#e-photo-status'); st.textContent='✓ Photo prête : clique sur « Enregistrer la journée »'; st.hidden=false;
 }
 ['#e-camera','#e-gallery'].forEach(id=>$(id).addEventListener('change',e=>{ setPendingPhoto(e.target.files[0]); e.target.value=''; }));
 const entryCard=$('#entry-card');
