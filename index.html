@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>GLPivo</title>
+<title>GLPivot</title>
 <meta name="theme-color" content="#0b5f7a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="GLPivo">
+<meta name="apple-mobile-web-app-title" content="GLPivot">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -146,11 +146,11 @@ canvas{width:100%;height:260px;display:block}
 <body>
 <div class="wrap">
 <header>
-  <h1><img src="icon-192.png" alt="" class="logo"> GLPivo</h1>
+  <h1><img src="icon-192.png" alt="" class="logo"> GLPivot</h1>
   <p>Suivi des injections, du poids, des symptômes et de la progression</p>
   <div class="notice" id="notice" hidden>
     <b>Avant de commencer</b>
-    <p>GLPivo sert à noter et à visualiser ton suivi personnel. C'est un outil d'information et de suivi général seulement. Il ne pose aucun diagnostic, ne recommande aucune dose et ne remplace pas l'avis de ton médecin, de ton infirmière ou de ton pharmacien. Ne modifie jamais ton traitement sans leur en parler. En cas d'effet secondaire inquiétant, contacte un professionnel de la santé; en cas d'urgence, compose le 911.</p>
+    <p>GLPivot sert à noter et à visualiser ton suivi personnel. C'est un outil d'information et de suivi général seulement. Il ne pose aucun diagnostic, ne recommande aucune dose et ne remplace pas l'avis de ton médecin, de ton infirmière ou de ton pharmacien. Ne modifie jamais ton traitement sans leur en parler. En cas d'effet secondaire inquiétant, contacte un professionnel de la santé; en cas d'urgence, compose le 911.</p>
     <button type="button" id="b-notice">J'ai compris</button>
   </div>
   <div class="banner" id="banner" hidden></div>
@@ -316,7 +316,7 @@ canvas{width:100%;height:260px;display:block}
   </section>
 </main>
 <footer class="disclaimer">
-  <b>Avertissement</b> — GLPivo est un outil d'information et de suivi général. Il ne fournit aucun avis médical, diagnostic ni recommandation de traitement ou de dose, et ne remplace pas un professionnel de la santé. Les noms de médicaments appartiennent à leurs propriétaires respectifs. Tes données restent sur ton appareil et, si tu l'actives, dans ton propre Google Drive.
+  <b>Avertissement</b> — GLPivot est un outil d'information et de suivi général. Il ne fournit aucun avis médical, diagnostic ni recommandation de traitement ou de dose, et ne remplace pas un professionnel de la santé. Les noms de médicaments appartiennent à leurs propriétaires respectifs. Tes données restent sur ton appareil et, si tu l'actives, dans ton propre Google Drive.
 </footer>
 </div>
 
@@ -711,13 +711,13 @@ $('#b-export').onclick=async()=>{
   const data={app:'glpivo-backup',version:1,exported:new Date().toISOString(),entries,doses:state.doses,activities:state.activities,settings:state.settings};
   const file=new File([JSON.stringify(data)],`glpivo-sauvegarde-${todayStr()}.json`,{type:'application/json'});
   // Sur iPhone, le menu Partager permet d'enregistrer dans Fichiers
-  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:'Sauvegarde GLPivo'}); return; }catch(e){ if(e.name==='AbortError') return; } }
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:'Sauvegarde GLPivot'}); return; }catch(e){ if(e.name==='AbortError') return; } }
   const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=file.name; document.body.append(a); a.click(); a.remove();
   toast('Sauvegarde téléchargée ✓');
 };
 $('#i-file').addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  let data; try{ data=JSON.parse(await f.text()); if(!['glpivo-backup','meagain-local'].includes(data.app)) throw 0; }catch{ toast('Ce fichier n\'est pas une sauvegarde GLPivo.'); return; }
+  let data; try{ data=JSON.parse(await f.text()); if(!['glpivo-backup','meagain-local'].includes(data.app)) throw 0; }catch{ toast('Ce fichier n\'est pas une sauvegarde GLPivot.'); return; }
   banner('Importation en cours…'); let n=0;
   for(const x of data.entries||[]){
     const date=x.date||x.id; if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;

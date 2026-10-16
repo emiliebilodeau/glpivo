@@ -1,6 +1,6 @@
 {
-  "name": "GLPivo",
-  "short_name": "GLPivo",
+  "name": "GLPivot",
+  "short_name": "GLPivot",
   "description": "Suivi des injections, du poids, des symptômes et de la progression",
   "lang": "fr-CA",
   "start_url": "./",
